@@ -19,6 +19,9 @@ class FastVLMModel {
     public var modelInfo = ""
     public var output = ""
     public var promptTime: String = ""
+    public var comedyOutput = ""
+
+    private var comedyService = ComedyService()
 
     enum LoadState {
         case idle
@@ -161,6 +164,16 @@ class FastVLMModel {
                 // Check if task was cancelled before updating UI
                 if !Task.isCancelled {
                     self.output = result.output
+
+                    // Generate comedy based on the output if FoundationModels is available
+                    if comedyService.isAvailable {
+                        do {
+                            let comedy = try await comedyService.generateComedy(from: result.output)
+                            self.comedyOutput = comedy
+                        } catch {
+                            self.comedyOutput = "大喜利生成エラー: \(error.localizedDescription)"
+                        }
+                    }
                 }
 
             } catch {
@@ -185,6 +198,7 @@ class FastVLMModel {
         currentTask = nil
         running = false
         output = ""
+        comedyOutput = ""
         promptTime = ""
     }
 }

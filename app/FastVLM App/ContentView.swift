@@ -187,6 +187,35 @@ struct ContentView: View {
                         #endif
                 }
 
+                Section {
+                    if !model.comedyOutput.isEmpty {
+                        ScrollView {
+                            Text(model.comedyOutput)
+                                .foregroundStyle(isEditingPrompt ? .secondary : .primary)
+                                .textSelection(.enabled)
+                                #if os(macOS)
+                                .font(.headline)
+                                .fontWeight(.regular)
+                                #endif
+                        }
+                        .frame(minHeight: 50.0, maxHeight: 150.0)
+                    } else if model.running && !model.output.isEmpty {
+                        ProgressView()
+                            .controlSize(.large)
+                            .frame(maxWidth: .infinity)
+                    } else {
+                        Text("大喜利AIが画像の説明から面白い回答を作成します")
+                            .foregroundStyle(.secondary)
+                            .frame(minHeight: 50.0)
+                    }
+                } header: {
+                    Text("大喜利 AI")
+                        #if os(macOS)
+                        .font(.headline)
+                        .padding(.bottom, 2.0)
+                        #endif
+                }
+
                 #if os(macOS)
                 Spacer()
                 #endif
@@ -433,6 +462,7 @@ struct ContentView: View {
         // Reset Response UI (show spinner)
         Task { @MainActor in
             model.output = ""
+            model.comedyOutput = ""
         }
 
         // Construct request to model
