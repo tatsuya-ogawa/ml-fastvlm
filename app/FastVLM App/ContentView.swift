@@ -5,6 +5,7 @@
 
 import AVFoundation
 import MLXLMCommon
+import PhotosUI
 import SwiftUI
 import Video
 
@@ -30,6 +31,9 @@ struct ContentView: View {
 
     @State private var selectedCameraType: CameraType = .continuous
     @State private var isEditingPrompt: Bool = false
+
+    @State private var selectedPhoto: PhotosPickerItem?
+    @State private var selectedPhotoImage: UIImage?
 
     var toolbarItemPlacement: ToolbarItemPlacement {
         var placement: ToolbarItemPlacement = .navigation
@@ -61,7 +65,8 @@ struct ContentView: View {
                     VStack(alignment: .leading, spacing: 10.0) {
                         Picker("Camera Type", selection: $selectedCameraType) {
                             ForEach(CameraType.allCases, id: \.self) { cameraType in
-                                Text(cameraType.rawValue.capitalized).tag(cameraType)
+                                let title = cameraType == .photo ? "Photo" : cameraType.rawValue.capitalized
+                                Text(title).tag(cameraType)
                             }
                         }
                         // Prevent macOS from adding a text label for the picker
@@ -72,7 +77,49 @@ struct ContentView: View {
                             model.cancel()
                         }
 
-                        if let framesToDisplay {
+                        if selectedCameraType == .photo {
+                            if let selectedPhotoImage {
+                                Image(uiImage: selectedPhotoImage)
+                                    .resizable()
+                                    .aspectRatio(contentMode: .fit)
+                                    #if os(macOS)
+                                    .frame(maxWidth: 750)
+                                    #endif
+                                    .onTapGesture {
+                                        processSelectedPhoto()
+                                    }
+                                    .overlay(alignment: .center) {
+                                        if !model.running {
+                                            VStack {
+                                                Image(systemName: "play.circle.fill")
+                                                    .font(.system(size: 50))
+                                                    .foregroundStyle(.white)
+                                                    .background(Circle().fill(.black.opacity(0.5)))
+                                                Text("タップして分析")
+                                                    .foregroundStyle(.white)
+                                                    .font(.caption)
+                                                    .padding(.horizontal, 8)
+                                                    .padding(.vertical, 4)
+                                                    .background(.black.opacity(0.5))
+                                                    .cornerRadius(4)
+                                            }
+                                        }
+                                    }
+                            } else {
+                                PhotosPicker(selection: $selectedPhoto, matching: .images) {
+                                    VStack {
+                                        Image(systemName: "photo")
+                                            .font(.system(size: 50))
+                                            .foregroundStyle(.gray)
+                                        Text("写真を選択")
+                                            .foregroundStyle(.gray)
+                                    }
+                                    .frame(maxWidth: .infinity, minHeight: 200)
+                                    .background(Color(.systemGray6))
+                                    .cornerRadius(10)
+                                }
+                            }
+                        } else if let framesToDisplay {
                             VideoFrameView(
                                 frames: framesToDisplay,
                                 cameraType: selectedCameraType,
@@ -254,7 +301,21 @@ struct ContentView: View {
                     return
                 }
 
-                await distributeVideoFrames()
+                if selectedCameraType != .photo {
+                    await distributeVideoFrames()
+                }
+            }
+            .onChange(of: selectedPhoto) { _, newPhoto in
+                Task {
+                    if let newPhoto {
+                        if let imageData = try? await newPhoto.loadTransferable(type: Data.self),
+                           let uiImage = UIImage(data: imageData) {
+                            selectedPhotoImage = uiImage
+                        }
+                    } else {
+                        selectedPhotoImage = nil
+                    }
+                }
             }
 
             .navigationTitle("FastVLM")
@@ -482,6 +543,31 @@ struct ContentView: View {
         let userInput = UserInput(
             prompt: .text("\(prompt) \(promptSuffix)"),
             images: [.ciImage(CIImage(cvPixelBuffer: frame))]
+        )
+
+        // Post request to FastVLM
+        Task {
+            await model.generate(userInput)
+        }
+    }
+
+    /// Perform FastVLM inference on the selected photo.
+    func processSelectedPhoto() {
+        guard let selectedPhotoImage else { return }
+
+        // Reset Response UI (show spinner)
+        Task { @MainActor in
+            model.output = ""
+            model.comedyOutput = ""
+        }
+
+        // Convert UIImage to CIImage
+        guard let ciImage = CIImage(image: selectedPhotoImage) else { return }
+
+        // Construct request to model
+        let userInput = UserInput(
+            prompt: .text("\(prompt) \(promptSuffix)"),
+            images: [.ciImage(ciImage)]
         )
 
         // Post request to FastVLM
