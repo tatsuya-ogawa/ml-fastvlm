@@ -79,32 +79,43 @@ struct ContentView: View {
 
                         if selectedCameraType == .photo {
                             if let selectedPhotoImage {
-                                Image(uiImage: selectedPhotoImage)
-                                    .resizable()
-                                    .aspectRatio(contentMode: .fit)
-                                    #if os(macOS)
-                                    .frame(maxWidth: 750)
-                                    #endif
-                                    .onTapGesture {
-                                        processSelectedPhoto()
-                                    }
-                                    .overlay(alignment: .center) {
-                                        if !model.running {
-                                            VStack {
-                                                Image(systemName: "play.circle.fill")
-                                                    .font(.system(size: 50))
-                                                    .foregroundStyle(.white)
-                                                    .background(Circle().fill(.black.opacity(0.5)))
-                                                Text("タップして分析")
-                                                    .foregroundStyle(.white)
-                                                    .font(.caption)
-                                                    .padding(.horizontal, 8)
-                                                    .padding(.vertical, 4)
-                                                    .background(.black.opacity(0.5))
-                                                    .cornerRadius(4)
+                                VStack {
+                                    Image(uiImage: selectedPhotoImage)
+                                        .resizable()
+                                        .aspectRatio(contentMode: .fit)
+                                        .frame(maxWidth: .infinity)
+                                        .onTapGesture {
+                                            processSelectedPhoto()
+                                        }
+                                        .overlay(alignment: .center) {
+                                            if !model.running {
+                                                VStack {
+                                                    Image(systemName: "play.circle.fill")
+                                                        .font(.system(size: 50))
+                                                        .foregroundStyle(.white)
+                                                        .background(Circle().fill(.black.opacity(0.5)))
+                                                    Text("タップして分析")
+                                                        .foregroundStyle(.white)
+                                                        .font(.caption)
+                                                        .padding(.horizontal, 8)
+                                                        .padding(.vertical, 4)
+                                                        .background(.black.opacity(0.5))
+                                                        .cornerRadius(4)
+                                                }
                                             }
                                         }
-                                    }
+                                        .overlay(alignment: .topTrailing) {
+                                            PhotosPicker(selection: $selectedPhoto, matching: .images) {
+                                                Image(systemName: "photo.badge.plus")
+                                                    .font(.system(size: 20))
+                                                    .foregroundStyle(.white)
+                                                    .padding(8)
+                                                    .background(Circle().fill(.black.opacity(0.7)))
+                                            }
+                                            .padding()
+                                        }
+                                    Spacer()
+                                }
                             } else {
                                 PhotosPicker(selection: $selectedPhoto, matching: .images) {
                                     VStack {
