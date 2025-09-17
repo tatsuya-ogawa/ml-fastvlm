@@ -11,23 +11,31 @@ import FoundationModels
 @Observable
 class ComedyService {
     private var session: LanguageModelSession?
+    private var currentPrompt: String = ""
 
     init() {
         setupSession()
     }
 
     private func setupSession() {
+        let prompt = ComedySettings.shared.comedyPrompt
+        currentPrompt = prompt
         session = LanguageModelSession(
-            instructions: "あなたは優秀な大喜利師です。与えられた画像の説明から面白い大喜利の回答を作ってください。日本語で回答し、ユーモアとウィットに富んだ内容にしてください。短くて覚えやすいフレーズを心がけてください。"
+            instructions: prompt
         )
     }
 
     func generateComedy(from imageDescription: String) async throws -> String {
+        let currentSettingsPrompt = ComedySettings.shared.comedyPrompt
+        if currentSettingsPrompt != currentPrompt {
+            setupSession()
+        }
+
         guard let session = session else {
             throw ComedyError.sessionNotInitialized
         }
 
-        let prompt = "この画像の説明を元に大喜利をしてください：\(imageDescription)"
+        let prompt = "この画像の説明を元にコメディを作ってください：\(imageDescription)"
 
         do {
             let response = try await session.respond(to: prompt)
@@ -76,13 +84,13 @@ enum ComedyError: LocalizedError {
     var errorDescription: String? {
         switch self {
         case .sessionNotInitialized:
-            return "大喜利セッションが初期化されていません"
+            return "コメディのAIセッションが初期化されていません"
         case .failedToGenerate(let message):
-            return "大喜利の生成に失敗しました: \(message)"
+            return "コメディの生成に失敗しました: \(message)"
         case .contextWindowExceeded:
-            return "会話が長すぎます。新しいセッションを開始しました。"
+            return "会話が長すぎました。新しいセッションを開始しました。"
         case .serviceUnavailable(let reason):
-            return "大喜利サービスが利用できません: \(reason)"
+            return "コメディAIサービスが利用できません: \(reason)"
         }
     }
 }

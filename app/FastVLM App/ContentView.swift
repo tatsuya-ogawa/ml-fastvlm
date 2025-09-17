@@ -26,6 +26,7 @@ struct ContentView: View {
     @State private var promptSuffix = "Output should be brief, about 15 words or less."
 
     @State private var isShowingInfo: Bool = false
+    @State private var isShowingSettings: Bool = false
 
     @State private var selectedCameraType: CameraType = .continuous
     @State private var isEditingPrompt: Bool = false
@@ -204,12 +205,12 @@ struct ContentView: View {
                             .controlSize(.large)
                             .frame(maxWidth: .infinity)
                     } else {
-                        Text("大喜利AIが画像の説明から面白い回答を作成します")
+                        Text("コメディAIが画像の説明から面白い回答を作成します")
                             .foregroundStyle(.secondary)
                             .frame(minHeight: 50.0)
                     }
                 } header: {
-                    Text("大喜利 AI")
+                    Text("コメディ AI")
                         #if os(macOS)
                         .font(.headline)
                         .padding(.bottom, 2.0)
@@ -262,11 +263,20 @@ struct ContentView: View {
             #endif
             .toolbar {
                 ToolbarItem(placement: toolbarItemPlacement) {
-                    Button {
-                        isShowingInfo.toggle()
-                    }
-                    label: {
-                        Image(systemName: "info.circle")
+                    HStack {
+                        Button {
+                            isShowingInfo.toggle()
+                        }
+                        label: {
+                            Image(systemName: "info.circle")
+                        }
+
+                        Button {
+                            isShowingSettings.toggle()
+                        }
+                        label: {
+                            Image(systemName: "gearshape")
+                        }
                     }
                 }
 
@@ -305,6 +315,9 @@ struct ContentView: View {
             }
             .sheet(isPresented: $isShowingInfo) {
                 InfoView()
+            }
+            .sheet(isPresented: $isShowingSettings) {
+                SettingsView()
             }
         }
     }
